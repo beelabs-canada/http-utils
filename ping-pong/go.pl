@@ -3,19 +3,16 @@
 use strict;
 use warnings;
 use utf8;
-use 5.010_001;
+use 5.010;
 
-use Mojo::UserAgent;
-use Mojo::JSON qw(decode_json encode_json);
-use Mojo::Log;
-use Mojo::URL;
-use Mojo::Log;
-use Mojo::File qw/path/;
-use Mojo::IOLoop;
+
+use YAML::Tiny;
+use Path::Tiny;
+
+
 use Time::Piece;
-
 use Class::CSV;
-use Data::Dmp;
+
 
 # -------------------------------------------- #
 # 					GLOBALS
@@ -30,7 +27,6 @@ my $config = decode_json( path( $0 )->sibling( 'go.json' )->slurp );
 # HTTP CLient
 my $ua = Mojo::UserAgent->new( max_redirects => 7 ) ;
 
-$ua->transactor->name( $config->{'http'}->{'agent'} );
 $log->info( ' GO v1.0a started ');
 
 my @urls = @{ $config->{'catalog'} };
@@ -41,7 +37,6 @@ my $csv = Class::CSV->new(
 );
 
 $csv->add_line(['URL', 'Cached', 'Timestamp' ,'Akamai Cache Code']);
-
 
 # Use a delay to keep the event loop running until we are done
 my $delay = Mojo::IOLoop->delay;
@@ -55,12 +50,13 @@ $fetch = sub {
 
   # Fetch the next title
   my $end = $delay->begin;
-  $ua->get($url => { Pragma => 'akamai-x-cache-on, akamai-x-cache-remote-on, akamai-x-check-cacheable, akamai-x-get-cache-key, akamai-x-get-ssl-client-session-id, akamai-x-get-true-cache-key, akamai-x-get-request-id'} => sub {
+  
+  $ua->get($url => { 'User-Agent' => $config->{'http'}->{'agent'} , 'Pragma' => 'akamai-x-cache-on, akamai-x-cache-remote-on, akamai-x-check-cacheable, akamai-x-get-cache-key, akamai-x-get-ssl-client-session-id, akamai-x-get-true-cache-key, akamai-x-get-request-id'} => sub {
     my ($ua, $tx) = @_;
 	
 	$csv->add_line([
 		$tx->req->url->to_abs,
-		( index( $tx->res->headers->{headers}->{'x-cache'}->[0], '_MISS' ) != -1  ) ? 'NO' : 'YES',
+		( index( $tx->res->headers->{'headers'}->{'x-cache'}->[0], '_MISS' ) != -1  ) ? 'NO' : 'YES',
 		localtime->datetime,
 		$tx->res->headers->{headers}->{'x-cache'}->[0]
 	]);

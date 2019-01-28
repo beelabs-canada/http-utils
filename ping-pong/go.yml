@@ -1,0 +1,8 @@
+---
+version: 1.0-alpha
+http:
+  headers:
+    User-Agent: 'Canada.ca Auditor (qw/ping-pong/ v1.0-alpha)'
+    Pragma: 'akamai-x-cache-on, akamai-x-cache-remote-on, akamai-x-check-cacheable, akamai-x-get-cache-key, akamai-x-get-ssl-client-session-id, akamai-x-get-true-cache-key, akamai-x-get-request-id'
+catalog:
+  - ''
