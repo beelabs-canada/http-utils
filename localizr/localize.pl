@@ -75,17 +75,16 @@ sub get_callback {
     # Deactivate
     --$active;
 
-    # Parse only OK HTML responses
-    return
-        if not $tx->res->is_success
-        or $tx->res->headers->content_type !~ m{^text/html\b}ix;
+    # Parse only OK responses
+    return if not $tx->res->is_success;
 
-    my $path = inflex( $tx->req->url );
-
-    say " [path] >> ".$path->stringify;
-    parse_html( $path, $tx );
-
-    return;
+    if ( $tx->res->headers->content_type =~ m{^text/html\b}ix )
+    {
+       return parse_html( inflex( $tx->req->url ) , $tx );
+    }
+    
+    # lets download the resource
+    return  download ( store( $tx->req->url ), $tx );
 }
 
 sub parse_html {
@@ -118,11 +117,14 @@ sub parse_html {
         # Don't visit other hosts
         next if $link->host ne $url->host;
 
-        push @urls, $link;
-        say " -> $link";
-    }
-    say '';
+        $e->{href} = $link->path;
 
+        push @urls, $link;
+        
+        say " [adding] $link";
+    }
+
+    $path->touchpath->spew_utf8( $tx->res->dom->to_string );
     return;
 }
 
@@ -142,4 +144,18 @@ sub inflex
     }
 
     return  $base->child( $path );
+}
+
+sub store 
+{
+    my ( $url ) = ( Mojo::URL->new( $_[0] ) );
+    return $url->path->leading_slash(0);
+}
+
+sub download
+{
+    my ( $path, $tx ) = @_;
+    say " [download] ".$tx->req->url;
+    say " [file]".$tx->result;
+    return $tx->result->save_to( $base->child( $path )->absolute->touchpath->stringify )
 }
