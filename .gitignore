@@ -4,6 +4,7 @@
 # Edit at https://www.gitignore.io/?templates=macos,visualstudiocode,sublimetext,windows
 *.log
 *.csv
+.vstags
 
 ### macOS ###
 # General
