@@ -109,7 +109,7 @@ sub parse_html {
         next unless grep { $link->protocol eq $_ } qw(http https);
 
         # Don't go deeper than /a/b/c
-        next if @{$link->path->parts} > 3;
+        next if @{$link->path->parts} > $opts->{'d'};
 
         # Access every link only once
         state $uniq = {};
@@ -129,10 +129,17 @@ sub parse_html {
 sub inflex
 {
     my ( $url ) = ( Mojo::URL->new( $_[0] ) );
-    if ( $url->path->leading_slash(0) eq '' )
+    my $path = $url->path->leading_slash(0);
+
+    if ( length($path) == 0 )
     {
         return  $base->child('index.html');
     }
-    my $path = $base->child( $url->path->leading_slash(0) );
-    return ( (fileparse( $path->stringify ))[-1] ne '' ) ? $path : $path->child('index.html') ;
+
+    if ($path !~ /\.[^.]+$/)
+    {
+        return $base->child( $path, 'index.html' );
+    }
+
+    return  $base->child( $path );
 }
